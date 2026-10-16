@@ -56,9 +56,20 @@ Every dataset filters with `event_date >= date_sub(current_date(), :lookback_day
 
 ## Prerequisites
 
-- Databricks CLI v0.232+ (needed for bundle `dashboards` resources) (`databricks --version`), authenticated to the target workspace (`databricks auth login --profile <profile>`)
-- A SQL warehouse (serverless recommended)
-- `SELECT` on `system.access.audit` for the warehouse owner and the dashboard viewers (system tables must be enabled for the account)
+**Who deploys:** permissions are never granted to individual users. In dev, any member of the developers group (`GB-DBX-DashGov-Developers`, variable `developers_group`) deploys with their own login. In prod, only the CI/CD service principal deploys. To let someone deploy to dev, add them to the group.
+
+- Databricks CLI v0.232+ (needed for bundle `dashboards` resources), authenticated as a member of the developers group (`databricks auth login --host <workspace-url> --profile <profile>`)
+- System schema `access` enabled on the metastore
+- The developers group must be an **account-level** group (synced from Entra ID), assigned to the workspace, with:
+
+| Layer | Permission | Granted by |
+|---|---|---|
+| Workspace | Entitlements `Workspace access` + `Databricks SQL access` | Workspace Admin |
+| Compute | `CAN_USE` on the SQL warehouse (serverless recommended) | Workspace Admin / warehouse owner |
+| Unity Catalog | `USE CATALOG system`, `USE SCHEMA system.access`, `SELECT system.access.audit` | Metastore Admin |
+| Dashboard | `CAN_MANAGE`: set by the bundle | — |
+
+With `embed_credentials: true` (Grupo Bimbo targets), consumers only need `CAN_READ` on the dashboard, which the bundle grants. They need no warehouse or system-table access. Full grant scripts are in `docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md` (section 5.3).
 
 ## Configuration
 
@@ -66,9 +77,12 @@ Variables in `databricks.yml`:
 
 | Variable | Description | Default |
 |---|---|---|
-| `warehouse_id` | SQL warehouse that runs the dashboard | `REPLACE_WITH_YOUR_WAREHOUSE_ID` |
-| `catalog_name` | Default catalog for datasets | `main` (dev: `dev_catalog`, prod: `prod_catalog`) |
-| `schema_name` | Default schema for datasets | `default` (dev: `dev_schema`, prod: `prod_schema`) |
+| `warehouse_id` | SQL warehouse that runs the dashboard | Set per target (`bimbo_*` targets look it up by warehouse name) |
+| `catalog_name` | Default catalog for datasets | Set per target (`system` for `bimbo_*`) |
+| `schema_name` | Default schema for datasets | Set per target (`access` for `bimbo_*`) |
+| `admins_group` | Dashboard owners (`CAN_MANAGE` in prod) | `GB-DBX-DashGov-Admins` |
+| `developers_group` | Deployers in dev; maintain the bundle | `GB-DBX-DashGov-Developers` |
+| `consumers_group` | Dashboard viewers | `GB-DBX-DashGov-Consumers` |
 
 All queries use fully qualified `system.access.audit`, so `catalog_name`/`schema_name` only matter if you add datasets that use unqualified table names.
 
@@ -88,7 +102,8 @@ Run these from this directory (the one containing `databricks.yml`):
 # 1. Validate
 databricks bundle validate -t dev --profile <profile> --var warehouse_id=<id>
 
-# 2. Deploy to dev (development mode: dashboard is named "[dev <user>] Dashboard Governance - POC")
+# 2. Deploy to dev (development mode: dashboard is named "[dev <user>] Dashboard Governance - POC";
+#    run it as a member of the developers group)
 databricks bundle deploy -t dev --profile <profile> --var warehouse_id=<id>
 
 # 3. Deploy to prod
@@ -114,11 +129,17 @@ databricks bundle summary -t dev --profile <profile>
 | `dev` | `users`: CAN_READ |
 | `prod` | `admins`: CAN_EDIT, `users`: CAN_READ |
 | `bimbo_dev` | `GB-DBX-DashGov-Developers`: CAN_MANAGE, `GB-DBX-DashGov-Consumers`: CAN_READ |
-| `bimbo_prod` | `GB-DBX-DashGov-Admins`: CAN_MANAGE, Developers and Consumers: CAN_READ |
+| `bimbo_prod` | `GB-DBX-DashGov-Admins`: CAN_MANAGE, Developers and Consumers: CAN_READ. Deployed and owned by the CI/CD service principal |
 
 ### Grupo Bimbo targets
 
-`bimbo_dev` and `bimbo_prod` deploy to the client's own workspaces. Before using them, replace the `REPLACE_WITH_BIMBO_*` workspace URLs and warehouse names in `databricks.yml`, then follow `docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md`. Group names are bundle variables (`admins_group`, `developers_group`, `consumers_group`).
+`bimbo_dev` and `bimbo_prod` deploy to the client's own workspaces. Before using them, replace the `REPLACE_WITH_BIMBO_*` workspace URLs and warehouse names in `databricks.yml`, then follow `docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md`. Group names are bundle variables (`admins_group`, `developers_group`, `consumers_group`). If the groups don't exist yet, pass existing ones with `--var developers_group=... --var consumers_group=...`.
+
+```bash
+# Run as a member of the developers group
+databricks bundle validate -t bimbo_dev --profile bimbo-dev
+databricks bundle deploy   -t bimbo_dev --profile bimbo-dev
+```
 
 ### Remove
 

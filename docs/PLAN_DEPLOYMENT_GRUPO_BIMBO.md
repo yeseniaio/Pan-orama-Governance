@@ -14,8 +14,9 @@
 ## 1. Alcance
 
 **Incluido en el MVP**
-- Dashboard con 5 páginas: Overview, Usage & Adoption, Access & Permissions, Errors & Reliability, Audit Trail.
-- Global filter `Lookback (days)`, con default de 7 días.
+- Dashboard con 6 páginas: Overview, Usage & Adoption, Access & Permissions, Errors & Reliability, Audit Trail e Inactive Dashboards (dashboards sin actividad y sus owners).
+- Global filters `Lookback (days)` (default 7 días) y `History (days)` (default 30 días, usado por Inactive Dashboards).
+- Modelo de acceso por grupos: el deploy en dev lo hace cualquier miembro del grupo Developers; en prod, el service principal. No se asignan permisos a usuarios individuales.
 - Un bundle con targets `fevm` (MVP), `bimbo_dev` y `bimbo_prod`.
 - Documentación, smoke tests (`tests/smoke_tests.sql`) y una sesión de knowledge transfer.
 
@@ -52,18 +53,18 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 |---|---|---|---|
 | D-09 | Nombre del warehouse en dev | `wh-gb-governance-dev` → `lookup.warehouse` | Workspace Admin |
 | D-10 | Nombre del warehouse en prod | `wh-gb-governance-prod` | Workspace Admin |
-| D-11 | Tipo / tamaño | TBD | Platform Engineer |
+| D-11 | Tipo / tamaño | Serverless, 2X-Small, auto-stop de 10 min, max clusters 1–2 | Platform Engineer |
 | D-12 | Tags de costo | `project=dashboard-governance`, `owner=<area>` | Client Owner |
-| D-13 | Permiso `CAN_USE` en el warehouse | SP de deployment + Developers (+ Consumers solo si `embed_credentials: false`) | Workspace Admin |
+| D-13 | Permiso `CAN_USE` en el warehouse | Grupo `GB-DBX-DashGov-Developers` (dev) y SP de deployment (prod). Consumers solo si `embed_credentials: false`. Nunca a usuarios individuales | Workspace Admin |
 
 ### 2.3 Data access (Unity Catalog)
 
 | ID | Definición | Detalle | Responsable |
 |---|---|---|---|
 | D-14 | System schemas habilitados | `access` (requerido); `query` y `billing` (para los charts adicionales) | Account Admin |
-| D-15 | Grants sobre system tables | Ver la sección 5.3 | Metastore Admin |
+| D-15 | Grants sobre system tables | Al grupo Developers y al SP, nunca a usuarios individuales. Ver la sección 5.3 | Metastore Admin |
 | D-16 | Validar los `action_name` en el account del cliente | Ejecutar el smoke test T-04 | Platform Engineer |
-| D-17 | Retención requerida | El audit log conserva unos 365 días; el dashboard usa hasta 90 | Client Owner |
+| D-17 | Retención requerida | El audit log conserva unos 365 días; `Lookback` e `History` son configurables hasta 365 (defaults 7 y 30) | Client Owner |
 | D-18 | Dominio corporativo de email (para el chart de accesos externos) | `@grupobimbo.com` u otros: ____ | Security |
 
 ### 2.4 Identidades y seguridad
@@ -71,6 +72,7 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 | ID | Definición | Valor recomendado | Responsable |
 |---|---|---|---|
 | D-19 | Convención de nombres de los grupos de AD | `GB-DBX-DashGov-<Rol>` (ver la sección 4) | Identity Admin |
+| D-19b | Entitlements del grupo Developers | `Workspace access` + `Databricks SQL access` (necesarios para crear y desplegar dashboards) | Workspace Admin |
 | D-20 | Método de sincronización Entra ID → Databricks | SCIM provisioning a nivel account o Automatic Identity Management | Identity Admin |
 | D-21 | Service principal para CI/CD | `sp-gb-dbx-dashgov-cicd` (Entra ID managed) | Identity Admin |
 | D-22 | Autenticación del CI/CD | OAuth M2M (client secret) o Workload Identity Federation (OIDC) | Platform Engineer |
@@ -115,9 +117,29 @@ Los grupos se crean en Entra ID, se sincronizan **a nivel account** (SCIM) y se 
 | Grupo de AD | Propósito | Miembros típicos | Permiso en el dashboard (dev / prod) | Otros permisos |
 |---|---|---|---|---|
 | `GB-DBX-DashGov-Admins` | Owners funcionales; aprueban cambios | Client Owner, Workspace Admin | — / `CAN_MANAGE` | `CAN_MANAGE` en el folder del bundle en prod |
-| `GB-DBX-DashGov-Developers` | Mantienen el bundle y los queries | Data/Platform engineers | `CAN_MANAGE` / `CAN_READ` | `SELECT` en las system tables, `CAN_USE` en el warehouse de dev, `CAN_VIEW` en el folder de prod |
+| `GB-DBX-DashGov-Developers` | Mantienen el bundle y **despliegan en dev** | Data/Platform engineers | `CAN_MANAGE` / `CAN_READ` | Entitlements `Workspace access` + `Databricks SQL access`, `SELECT` en las system tables, `CAN_USE` en el warehouse de dev, `CAN_VIEW` en el folder de prod |
 | `GB-DBX-DashGov-Consumers` | Usan el dashboard | Governance, BI CoE, auditoría, seguridad | `CAN_READ` (UAT) / `CAN_READ` | Ninguno, si `embed_credentials: true` |
 | `sp-gb-dbx-dashgov-cicd` *(service principal)* | Deploy a prod y owner del dashboard | — | — / owner | `SELECT` en las system tables, `CAN_USE` en el warehouse de prod, workspace access |
+
+### 4.1 Modelo de acceso: quién despliega
+
+**Ningún usuario individual recibe permisos.** Todos los permisos se asignan a grupos de account (sincronizados desde Entra ID) o al service principal:
+
+- **Dev (`bimbo_dev`):** despliega **cualquier miembro de `GB-DBX-DashGov-Developers`**. Para habilitar a una persona (p. ej. alguien del equipo de plataforma o la DSA de Databricks durante una sesión conjunta), basta con agregarla al grupo.
+- **Prod (`bimbo_prod`):** despliega solo el service principal `sp-gb-dbx-dashgov-cicd` desde el CI/CD.
+
+Permisos que hereda un miembro de Developers:
+
+| Capa | Permiso | Asignado a | Quién lo asigna |
+|---|---|---|---|
+| Workspace | Entitlements `Workspace access` + `Databricks SQL access` | `GB-DBX-DashGov-Developers` | Workspace Admin |
+| Compute | `CAN_USE` en el warehouse de dev | `GB-DBX-DashGov-Developers` | Workspace Admin |
+| Unity Catalog | `USE CATALOG system`, `USE SCHEMA system.access`, `SELECT system.access.audit` | `GB-DBX-DashGov-Developers` | Metastore Admin |
+| Dashboard | `CAN_MANAGE` | `GB-DBX-DashGov-Developers` | El bundle (automático) |
+
+> Los grupos deben ser **de account** (Unity Catalog no acepta grants a grupos locales del workspace) y estar asignados al workspace. Después de agregar a alguien al grupo, la sincronización SCIM puede tardar unos minutos; conviene correr el smoke test T-01 con ese usuario antes de desplegar.
+>
+> Con `embed_credentials: true`, el dashboard de dev corre los queries con la identidad del miembro que lo publicó. Si esa persona sale del grupo, el dashboard de dev deja de mostrar datos y basta con que otro miembro lo vuelva a desplegar. En prod el owner es el SP, así que no depende de ninguna persona.
 
 **Usuarios de prueba para UAT**, uno por rol:
 
@@ -153,11 +175,13 @@ Los nombres de grupo son variables del bundle (`admins_group`, `developers_group
    ```
 2. **Identity Admin:** crear los grupos de la sección 4 en Entra ID y el service principal; sincronizarlos al account (SCIM).
 3. **Account Admin:** asignar los grupos y el SP al workspace de deployment (workspace assignment).
-4. **Workspace Admin:** crear el SQL warehouse (D-09/D-10) y dar `CAN_USE` según D-13.
-5. **Metastore Admin:** ejecutar los grants de la sección 5.3.
-6. **Platform Engineer:** crear el repo Git, cargar el bundle y añadir `.databricks/` a `.gitignore`.
+4. **Workspace Admin:** dar al grupo Developers los entitlements `Workspace access` y `Databricks SQL access` (D-19b).
+5. **Workspace Admin:** crear el SQL warehouse (D-09/D-10) y dar `CAN_USE` al grupo Developers y al SP (D-13, sección 5.3).
+6. **Metastore Admin:** ejecutar los grants de la sección 5.3 sobre el grupo Developers y el SP.
+7. **Identity Admin:** agregar al grupo Developers a las personas que van a desplegar en dev.
+8. **Platform Engineer:** crear el repo Git y cargar el bundle (ya incluye `.gitignore` con `.databricks/`).
 
-**Criterio de salida:** el smoke test T-01 (acceso) pasa con el SP y con un developer.
+**Criterio de salida:** el smoke test T-01 (acceso) pasa con el SP y con un miembro del grupo Developers.
 
 ### Fase 2 — Configuración del bundle
 1. Reemplazar los placeholders en `databricks.yml`:
@@ -169,6 +193,7 @@ Los nombres de grupo son variables del bundle (`admins_group`, `developers_group
 4. Abrir un PR con estos cambios; lo aprueba el Client Owner.
 
 ### Fase 3 — Deploy y pruebas en `bimbo_dev`
+Lo ejecuta **un miembro del grupo `GB-DBX-DashGov-Developers`** con su propio login (no se usan credenciales compartidas). Con los permisos de la sección 4.1 listos, el deploy toma menos de 5 minutos.
 ```bash
 databricks auth login --host https://<bimbo-dev-workspace> --profile bimbo-dev
 databricks bundle validate -t bimbo_dev --profile bimbo-dev
@@ -204,10 +229,14 @@ Después, ejecutar los smoke tests T-01 a T-10 de la sección 6.
 - Revisar el costo del warehouse cada mes (chart N-09).
 - Revisar trimestralmente la membresía de los grupos.
 
-### 5.3 Grants requeridos (Metastore Admin)
+### 5.3 Grants y permisos requeridos
+
+Todos se asignan a grupos o al SP, nunca a usuarios individuales.
+
+**Unity Catalog (Metastore Admin)**
 ```sql
--- Para cada <principal>: sp-gb-dbx-dashgov-cicd, GB-DBX-DashGov-Developers
--- (y GB-DBX-DashGov-Consumers solo si embed_credentials = false)
+-- Para cada <principal>: `GB-DBX-DashGov-Developers` y `sp-gb-dbx-dashgov-cicd`
+-- (y `GB-DBX-DashGov-Consumers` solo si embed_credentials = false)
 GRANT USE CATALOG ON CATALOG system                     TO `<principal>`;
 GRANT USE SCHEMA  ON SCHEMA  system.access              TO `<principal>`;
 GRANT SELECT      ON TABLE   system.access.audit        TO `<principal>`;
@@ -220,6 +249,19 @@ GRANT SELECT      ON TABLE   system.billing.usage       TO `<principal>`;
 GRANT SELECT      ON TABLE   system.billing.list_prices TO `<principal>`;
 ```
 
+**Compute (Workspace Admin u owner del warehouse)**: `update-permissions` agrega el permiso sin borrar los existentes.
+```bash
+databricks warehouses update-permissions <warehouse-id> --json '{
+  "access_control_list": [
+    {"group_name": "GB-DBX-DashGov-Developers", "permission_level": "CAN_USE"},
+    {"service_principal_name": "<sp-application-id>", "permission_level": "CAN_USE"}
+  ]
+}' --profile <profile>
+```
+En la UI: SQL Warehouses → warehouse → **Permissions**.
+
+**Entitlements del grupo Developers (Workspace Admin)**: Settings → Identity and access → Groups → `GB-DBX-DashGov-Developers` → Entitlements → `Workspace access` y `Databricks SQL access`.
+
 ---
 
 ## 6. Plan de pruebas (ambiente del cliente)
@@ -228,15 +270,15 @@ Los queries de soporte están en `tests/smoke_tests.sql`.
 
 | ID | Prioridad | Prueba | Cómo | Resultado esperado |
 |---|---|---|---|---|
-| T-01 | P1 | Acceso a las system tables | Query T-01 como el SP y como un developer | Devuelve filas, sin `PERMISSION_DENIED` |
-| T-02 | P1 | Bundle validate / deploy | `bundle validate` y `deploy -t bimbo_dev` | `Validation OK!` y el dashboard creado |
+| T-01 | P1 | Acceso a las system tables | Query T-01 como el SP y como un miembro del grupo Developers | Devuelve filas, sin `PERMISSION_DENIED` |
+| T-02 | P1 | Bundle validate / deploy | `bundle validate` y `deploy -t bimbo_dev`, ejecutados por un miembro de Developers | `Validation OK!` y el dashboard creado |
 | T-03 | P1 | Idempotencia | Repetir `bundle deploy` sin cambios | No hay errores ni dashboards duplicados |
 | T-04 | P1 | `action_name` reales | Query T-04 | Aparecen `getDashboard`, `getPublishedDashboard`, `createDashboard`, `trashDashboard`, etc. |
 | T-05 | P1 | Cada dataset devuelve datos | Query T-05 y revisión visual de cada página | Ningún widget vacío sin explicación |
-| T-06 | P2 | Reconciliación de cifras | Comparar el counter "Dashboard Inventory" con el query T-06 | Las cifras coinciden |
+| T-06 | P2 | Reconciliación de cifras | Comparar el counter "Active Dashboards" (Lookback = 30) con el query T-06 | Las cifras coinciden |
 | T-07 | P1 | Permiso de consumer | Entrar como `qa.consumer` | Ve los datos y no tiene opción de editar |
 | T-08 | P1 | Usuario sin acceso | Entrar como `qa.noaccess` | No ve el dashboard |
-| T-09 | P2 | Global filter | Cambiar `Lookback (days)` a 7, 30 y 90 | Todos los widgets se recalculan |
+| T-09 | P2 | Global filters | Cambiar `Lookback (days)` a 7, 30 y 90, y `History (days)` a 30 y 90 | Todos los widgets se recalculan |
 | T-10 | P2 | Performance | Abrir el dashboard con lookback de 90 días | Cada página carga en menos de 10 s con el warehouse ya encendido |
 | T-11 | P2 | `bundle destroy` en dev | `databricks bundle destroy -t bimbo_dev` | Se eliminan los recursos de dev |
 | T-12 | P3 | Subscriptions | Programar un envío a Consumers | Llega el email con el snapshot |
@@ -255,13 +297,13 @@ Los queries de soporte están en `tests/smoke_tests.sql`.
 | 4 | Llenar la checklist de definiciones (sección 2) | C | **A** | R | R | R | R | R | R | – |
 | 5 | Habilitar los system schemas | C | A | **R** | I | – | – | – | – | – |
 | 6 | Crear grupos de AD y SP; SCIM | C | A | C | – | – | **R** | I | C | – |
-| 7 | Asignar grupos y SP al workspace | C | A | **R** | – | C | C | – | – | – |
-| 8 | Crear el SQL warehouse y dar `CAN_USE` | C | A | – | – | **R** | – | C | – | – |
-| 9 | Grants en las system tables | C | A | – | **R** | – | – | – | C | – |
+| 7 | Asignar grupos y SP al workspace; entitlements de Developers | C | A | **R** | – | C | C | – | – | – |
+| 8 | Crear el SQL warehouse y dar `CAN_USE` al grupo Developers y al SP | C | A | – | – | **R** | – | C | – | – |
+| 9 | Grants en las system tables al grupo Developers y al SP | C | A | – | **R** | – | – | – | C | – |
 | 10 | Decidir `embed_credentials` y exposición de PII | C | **A** | – | C | – | – | – | **R** | I |
 | 11 | Crear el repo Git y el CI/CD pipeline | C | A | – | – | – | – | **R** | I | – |
 | 12 | Configurar `databricks.yml` (hosts, warehouse, grupos) | C | A | – | – | C | – | **R** | – | – |
-| 13 | Deploy y smoke tests en `bimbo_dev` | C | **A** | – | – | I | – | **R** | – | – |
+| 13 | Deploy y smoke tests en `bimbo_dev` (miembro de Developers) | C | **A** | – | – | I | – | **R** | – | – |
 | 14 | UAT (permisos y cifras) | C | **A** | – | – | – | – | R | C | **R** |
 | 15 | Aprobar el go-live | I | **A/R** | I | I | I | – | C | C | I |
 | 16 | Deploy a `bimbo_prod` vía CI/CD | I | A | – | – | I | – | **R** | – | I |
@@ -317,28 +359,7 @@ GROUP BY ALL ORDER BY event_date
 ```
 Visualización: line chart y un counter con el promedio.
 
-**N-04 · Dashboards obsoletos (candidatos a limpieza)**: tuvieron actividad en los últimos 365 días, pero ninguna vista en los últimos N días y no fueron eliminados.
-```sql
-WITH ev AS (
-  SELECT request_params.dashboard_id AS dashboard_id, workspace_id, event_date, action_name
-  FROM system.access.audit
-  WHERE service_name = 'dashboards'
-    AND request_params.dashboard_id IS NOT NULL
-    AND event_date >= date_sub(current_date(), 365)
-)
-SELECT dashboard_id,
-       CAST(ANY_VALUE(workspace_id) AS STRING)                                                     AS workspace_id,
-       MAX(CASE WHEN action_name IN ('getDashboard','getPublishedDashboard') THEN event_date END) AS last_viewed,
-       MAX(CASE WHEN action_name IN ('createDashboard','updateDashboard','publishDashboard') THEN event_date END) AS last_modified,
-       datediff(current_date(),
-         MAX(CASE WHEN action_name IN ('getDashboard','getPublishedDashboard') THEN event_date END)) AS days_since_view
-FROM ev
-GROUP BY dashboard_id
-HAVING SUM(CASE WHEN action_name IN ('trashDashboard','deleteDashboard') THEN 1 ELSE 0 END) = 0
-   AND (last_viewed IS NULL OR last_viewed < date_sub(current_date(), :lookback_days))
-ORDER BY days_since_view DESC NULLS FIRST
-```
-Visualización: tabla y un counter "Dashboards sin uso".
+**N-04 · Dashboards obsoletos (candidatos a limpieza)**: cubierto por la página **Inactive Dashboards** del dashboard (conteo, top owners y detalle).
 
 **N-05 · Performance por dashboard** (latencia de queries)
 ```sql
@@ -456,4 +477,6 @@ Visualización: bar chart.
 | Exposición de emails y errores a demasiados usuarios | Riesgo de compliance | Grupo Consumers acotado; decisiones D-23 y D-24 |
 | Ediciones manuales en prod sobrescritas por el siguiente deploy | Pérdida de cambios | Proceso de la Fase 6 (`bundle generate` → PR) |
 | Dashboard con owner personal | Se rompe si la persona sale de la compañía | El owner en prod es el SP (D-32) |
+| El miembro de Developers que publicó dev sale del grupo | El dashboard de dev deja de mostrar datos (`embed_credentials`) | Otro miembro vuelve a desplegar; en prod el owner es el SP |
+| Permisos asignados a usuarios individuales | Accesos difíciles de auditar y revocar | Todo permiso va a grupos de account o al SP (sección 4.1) |
 | Costo del warehouse | Consumo inesperado | Serverless con auto-stop corto; tags; chart N-09 |
