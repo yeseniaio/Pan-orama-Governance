@@ -50,7 +50,7 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 
 | ID | Definición | Valor recomendado | Responsable |
 |---|---|---|---|
-| D-09 | Nombre del warehouse en dev | `wh-gb-governance-dev` → `lookup.warehouse` | Workspace Admin |
+| D-09 | Nombre del warehouse en dev | `wh-gb-governance-dev`  | Workspace Admin |
 | D-10 | Nombre del warehouse en prod | `wh-gb-governance-prod` | Workspace Admin |
 | D-11 | Tipo / tamaño | TBD | Platform Engineer |
 | D-12 | Tags de costo | `project=dashboard-governance`, `owner=<area>` | Client Owner |
