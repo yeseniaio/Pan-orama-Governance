@@ -1,0 +1,122 @@
+bundle:
+  name: dashboard_governance
+
+variables:
+  warehouse_id:
+    description: SQL warehouse ID for dashboard execution
+    default: "d029c836c2f1d5c3"
+  catalog_name:
+    description: Unity Catalog catalog for dashboard datasets. REPLACE_WITH_YOURS
+    default: "serverless_stable_ga965x_catalog"
+  schema_name:
+    description: Schema for dashboard datasets. REPLACE_WITH_YOURS
+    default: "gb_gov_mvp"
+  # --- PROPOSED (Grupo Bimbo): Entra ID groups synced to the Databricks account via SCIM ---
+  # admins_group:
+  #   description: Owners of the dashboard (CAN_MANAGE)
+  #   default: "GB-DBX-DashGov-Admins"
+  # developers_group:
+  #   description: Engineers who maintain the bundle
+  #   default: "GB-DBX-DashGov-Developers"
+  # consumers_group:
+  #   description: Governance / security / platform viewers
+  #   default: "GB-DBX-DashGov-Consumers"
+
+resources:
+  dashboards:
+    dashboard_governance:
+      display_name: "Dashboard Governance - POC"
+      file_path: ./src/dashboard_governance.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog_name}
+      dataset_schema: ${var.schema_name}
+      # PROPOSED: move this "users" grant into the fevm/dev/prod targets so it does not
+      # also apply to the bimbo_* targets (top-level permissions apply to every target).
+      permissions:
+        - level: CAN_READ
+          group_name: "users"
+
+targets:
+  fevm:
+    mode: development
+    workspace:
+      host: https://fevm-serverless-stable-ga965x.cloud.databricks.com
+    variables:
+      warehouse_id: "d029c836c2f1d5c3" # gb_gov_mvp
+      catalog_name: "serverless_stable_ga965x_catalog"
+      schema_name: "gb_gov_mvp"
+
+  dev:
+    default: true
+    mode: development
+    variables:
+      catalog_name: "dev_catalog"
+      schema_name: "dev_schema"
+
+  prod:
+    mode: production
+    variables:
+      catalog_name: "prod_catalog"
+      schema_name: "prod_schema"
+    resources:
+      dashboards:
+        dashboard_governance:
+          permissions:
+            - level: CAN_EDIT
+              group_name: "admins"
+            - level: CAN_READ
+              group_name: "users"
+
+  # --- PROPOSED (Grupo Bimbo): client targets. See docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md ---
+  # All datasets read fully qualified system.* tables, so the default catalog/schema
+  # point to system.access (always present) instead of a client catalog.
+  # Uncomment together with the *_group variables above and replace REPLACE_WITH_* values.
+  #
+  # bimbo_dev:
+  #   mode: development
+  #   workspace:
+  #     host: https://REPLACE_WITH_BIMBO_DEV_WORKSPACE_URL
+  #   variables:
+  #     warehouse_id:
+  #       lookup:
+  #         warehouse: "REPLACE_WITH_BIMBO_DEV_WAREHOUSE_NAME"
+  #     catalog_name: "system"
+  #     schema_name: "access"
+  #   resources:
+  #     dashboards:
+  #       dashboard_governance:
+  #         embed_credentials: true
+  #         permissions:
+  #           - level: CAN_MANAGE
+  #             group_name: ${var.developers_group}
+  #           - level: CAN_READ
+  #             group_name: ${var.consumers_group} # UAT testers
+  #
+  # bimbo_prod:
+  #   mode: production
+  #   workspace:
+  #     host: https://REPLACE_WITH_BIMBO_PROD_WORKSPACE_URL
+  #     root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+  #   permissions: # access to the deployed bundle folder
+  #     - level: CAN_MANAGE
+  #       group_name: ${var.admins_group}
+  #     - level: CAN_VIEW
+  #       group_name: ${var.developers_group}
+  #   variables:
+  #     warehouse_id:
+  #       lookup:
+  #         warehouse: "REPLACE_WITH_BIMBO_PROD_WAREHOUSE_NAME"
+  #     catalog_name: "system"
+  #     schema_name: "access"
+  #   resources:
+  #     dashboards:
+  #       dashboard_governance:
+  #         display_name: "Dashboard Governance"
+  #         embed_credentials: true
+  #         permissions:
+  #           - level: CAN_MANAGE
+  #             group_name: ${var.admins_group}
+  #           - level: CAN_READ
+  #             group_name: ${var.developers_group}
+  #           - level: CAN_READ
+  #             group_name: ${var.consumers_group}

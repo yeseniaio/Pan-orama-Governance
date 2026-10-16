@@ -1,0 +1,2475 @@
+{
+  "datasets": [
+    {
+      "name": "dashboards_by_workspace",
+      "displayName": "Dashboards by Workspace",
+      "queryLines": [
+        "SELECT\n",
+        "  CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "  COUNT(DISTINCT request_params.dashboard_id) AS dashboard_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "GROUP BY\n",
+        "  workspace_id\n",
+        "ORDER BY\n",
+        "  dashboard_count DESC\n",
+        "LIMIT 20"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "activity_trend",
+      "displayName": "Activity Trend",
+      "queryLines": [
+        "SELECT\n",
+        "  event_date AS event_date,\n",
+        "  COUNT(*) AS event_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "GROUP BY\n",
+        "  event_date\n",
+        "ORDER BY\n",
+        "  event_date"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "dashboard_inventory",
+      "displayName": "Dashboard Inventory",
+      "queryLines": [
+        "SELECT\n",
+        "  COUNT(DISTINCT request_params.dashboard_id) AS dashboard_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "top_consumers",
+      "displayName": "Top Consumers",
+      "queryLines": [
+        "SELECT\n",
+        "  user_identity.email AS user_email,\n",
+        "  COUNT(*) AS view_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND action_name IN ('getDashboard', 'getPublishedDashboard')\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "GROUP BY\n",
+        "  user_identity.email\n",
+        "ORDER BY\n",
+        "  view_count DESC\n",
+        "LIMIT 10"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "dashboard_creators",
+      "displayName": "Dashboard Creators",
+      "queryLines": [
+        "SELECT\n",
+        "  user_identity.email AS user_email,\n",
+        "  COUNT(DISTINCT request_params.dashboard_id) AS dashboards_created,\n",
+        "  MAX(event_date) AS last_created\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND action_name = 'createDashboard'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "GROUP BY\n",
+        "  user_identity.email\n",
+        "ORDER BY\n",
+        "  dashboards_created DESC\n",
+        "LIMIT 50"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "recent_actions",
+      "displayName": "Recent Actions",
+      "queryLines": [
+        "SELECT\n",
+        "  event_time,\n",
+        "  user_identity.email AS user_email,\n",
+        "  action_name,\n",
+        "  request_params.dashboard_id AS dashboard_id,\n",
+        "  CAST(workspace_id AS STRING) AS workspace_id\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "ORDER BY\n",
+        "  event_time DESC\n",
+        "LIMIT 200"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deletion_log",
+      "displayName": "Deletion Log",
+      "queryLines": [
+        "SELECT\n",
+        "  event_date,\n",
+        "  user_identity.email AS user_email,\n",
+        "  request_params.dashboard_id AS dashboard_id,\n",
+        "  CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "  1 AS deletion_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND action_name IN ('trashDashboard', 'deleteDashboard')\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "action_breakdown",
+      "displayName": "Action Breakdown",
+      "queryLines": [
+        "SELECT\n",
+        "  action_name,\n",
+        "  event_date,\n",
+        "  CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "  COUNT(*) AS action_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "GROUP BY\n",
+        "  action_name,\n",
+        "  event_date,\n",
+        "  workspace_id"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "sharing_activity",
+      "displayName": "Sharing Activity",
+      "queryLines": [
+        "SELECT\n",
+        "  event_date,\n",
+        "  user_identity.email AS user_email,\n",
+        "  request_params.aclPermissionSet AS action_name,\n",
+        "  regexp_extract(request_params.aclChangeResourceName, '^dashboards/(.*)$', 1) AS dashboard_id,\n",
+        "  CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "  1 AS event_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'workspace'\n",
+        "  AND action_name = 'changeWorkspaceAcl'\n",
+        "  AND request_params.aclChangeResourceName LIKE 'dashboards/%'\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "error_details",
+      "displayName": "Error Details",
+      "queryLines": [
+        "SELECT\n",
+        "  event_date,\n",
+        "  event_time,\n",
+        "  user_identity.email AS user_email,\n",
+        "  action_name,\n",
+        "  response.status_code AS status_code,\n",
+        "  response.error_message AS error_message,\n",
+        "  request_params.dashboard_id AS dashboard_id,\n",
+        "  1 AS error_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND response.status_code >= 400\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "ORDER BY\n",
+        "  event_time DESC\n",
+        "LIMIT 100"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "failed_operations",
+      "displayName": "Failed Operations",
+      "queryLines": [
+        "SELECT\n",
+        "  event_date,\n",
+        "  user_identity.email AS user_email,\n",
+        "  action_name,\n",
+        "  response.status_code AS status_code,\n",
+        "  CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "  COUNT(*) AS error_count\n",
+        "FROM\n",
+        "  system.access.audit\n",
+        "WHERE\n",
+        "  service_name = 'dashboards'\n",
+        "  AND response.status_code >= 400\n",
+        "  AND event_date >= date_sub(current_date(), :lookback_days)\n",
+        "GROUP BY\n",
+        "  event_date,\n",
+        "  user_identity.email,\n",
+        "  action_name,\n",
+        "  response.status_code,\n",
+        "  workspace_id"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "inactive_dashboards",
+      "displayName": "Inactive Dashboards",
+      "queryLines": [
+        "WITH events AS (\n",
+        "  SELECT\n",
+        "    CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "    request_params.dashboard_id AS dashboard_id,\n",
+        "    action_name,\n",
+        "    user_identity.email AS user_email,\n",
+        "    event_time\n",
+        "  FROM\n",
+        "    system.access.audit\n",
+        "  WHERE\n",
+        "    service_name = 'dashboards'\n",
+        "    AND request_params.dashboard_id IS NOT NULL\n",
+        "    -- query execution events are high volume and always come with a view/refresh event\n",
+        "    AND action_name NOT IN ('executeQuery', 'getQueryResult', 'cancelQuery')\n",
+        "    AND event_date >= date_sub(current_date(), :history_days)\n",
+        "),\n",
+        "per_dashboard AS (\n",
+        "  SELECT\n",
+        "    workspace_id,\n",
+        "    dashboard_id,\n",
+        "    max_by(user_email, event_time) FILTER (WHERE action_name = 'createDashboard') AS creator,\n",
+        "    max_by(user_email, event_time) FILTER (WHERE action_name IN ('updateDashboard', 'publishDashboard')) AS last_editor,\n",
+        "    max_by(action_name, event_time) AS last_action,\n",
+        "    to_date(max(event_time)) AS last_activity_date\n",
+        "  FROM\n",
+        "    events\n",
+        "  GROUP BY\n",
+        "    workspace_id,\n",
+        "    dashboard_id\n",
+        ")\n",
+        "SELECT\n",
+        "  workspace_id,\n",
+        "  dashboard_id,\n",
+        "  coalesce(creator, last_editor, 'unknown') AS owner,\n",
+        "  CASE WHEN creator IS NOT NULL THEN 'creator' WHEN last_editor IS NOT NULL THEN 'last editor' ELSE 'unknown' END AS owner_source,\n",
+        "  last_activity_date,\n",
+        "  datediff(current_date(), last_activity_date) AS days_inactive,\n",
+        "  1 AS dashboard_count\n",
+        "FROM\n",
+        "  per_dashboard\n",
+        "WHERE\n",
+        "  last_action NOT IN ('trashDashboard', 'deleteDashboard')\n",
+        "  AND last_activity_date < date_sub(current_date(), :lookback_days)\n",
+        "ORDER BY\n",
+        "  days_inactive DESC"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "history_days",
+          "keyword": "history_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "inactive_by_owner",
+      "displayName": "Inactive Dashboards by Owner",
+      "queryLines": [
+        "WITH events AS (\n",
+        "  SELECT\n",
+        "    CAST(workspace_id AS STRING) AS workspace_id,\n",
+        "    request_params.dashboard_id AS dashboard_id,\n",
+        "    action_name,\n",
+        "    user_identity.email AS user_email,\n",
+        "    event_time\n",
+        "  FROM\n",
+        "    system.access.audit\n",
+        "  WHERE\n",
+        "    service_name = 'dashboards'\n",
+        "    AND request_params.dashboard_id IS NOT NULL\n",
+        "    -- query execution events are high volume and always come with a view/refresh event\n",
+        "    AND action_name NOT IN ('executeQuery', 'getQueryResult', 'cancelQuery')\n",
+        "    AND event_date >= date_sub(current_date(), :history_days)\n",
+        "),\n",
+        "per_dashboard AS (\n",
+        "  SELECT\n",
+        "    workspace_id,\n",
+        "    dashboard_id,\n",
+        "    max_by(user_email, event_time) FILTER (WHERE action_name = 'createDashboard') AS creator,\n",
+        "    max_by(user_email, event_time) FILTER (WHERE action_name IN ('updateDashboard', 'publishDashboard')) AS last_editor,\n",
+        "    max_by(action_name, event_time) AS last_action,\n",
+        "    to_date(max(event_time)) AS last_activity_date\n",
+        "  FROM\n",
+        "    events\n",
+        "  GROUP BY\n",
+        "    workspace_id,\n",
+        "    dashboard_id\n",
+        ")\n",
+        "SELECT\n",
+        "  coalesce(creator, last_editor) AS owner,\n",
+        "  COUNT(*) AS inactive_dashboards\n",
+        "FROM\n",
+        "  per_dashboard\n",
+        "WHERE\n",
+        "  last_action NOT IN ('trashDashboard', 'deleteDashboard')\n",
+        "  AND last_activity_date < date_sub(current_date(), :lookback_days)\n",
+        "  AND coalesce(creator, last_editor) IS NOT NULL\n",
+        "GROUP BY\n",
+        "  1\n",
+        "ORDER BY\n",
+        "  inactive_dashboards DESC\n",
+        "LIMIT 20"
+      ],
+      "parameters": [
+        {
+          "displayName": "lookback_days",
+          "keyword": "lookback_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "history_days",
+          "keyword": "history_days",
+          "dataType": "INTEGER",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER",
+              "values": [
+                {
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "6f922fb5",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "activity_note",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Dashboard Governance Overview\n",
+                "All metrics are **activity-based** (from `system.access.audit`): they count dashboards and users with events in the **Lookback (days)** window, not every dashboard that exists. ",
+                "See **Inactive Dashboards** for dashboards with no recent activity."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "inventory_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dashboard_inventory",
+                  "fields": [
+                    {
+                      "name": "sum(dashboard_count)",
+                      "expression": "SUM(`dashboard_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Active Dashboards"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(dashboard_count)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "by_workspace",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dashboards_by_workspace",
+                  "fields": [
+                    {
+                      "name": "workspace_id",
+                      "expression": "`workspace_id`"
+                    },
+                    {
+                      "name": "sum(dashboard_count)",
+                      "expression": "SUM(`dashboard_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Dashboards by Workspace"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "workspace_id",
+                  "displayName": "workspace_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(dashboard_count)",
+                  "displayName": "dashboard_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "workspace_id",
+                  "displayName": "workspace_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 9,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "creators_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dashboard_creators",
+                  "fields": [
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "dashboards_created",
+                      "expression": "`dashboards_created`"
+                    },
+                    {
+                      "name": "last_created",
+                      "expression": "`last_created`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Dashboard Creators"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_email"
+                  },
+                  {
+                    "fieldName": "dashboards_created"
+                  },
+                  {
+                    "fieldName": "last_created"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "overview_action_breakdown",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "action_breakdown",
+                  "fields": [
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "sum(action_count)",
+                      "expression": "SUM(`action_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Action Type Breakdown"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(action_count)",
+                  "displayName": "action_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "overview_error_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "failed_operations",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "sum(error_count)",
+                      "expression": "SUM(`error_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Operations Trend"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_date",
+                  "displayName": "event_date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(error_count)",
+                  "displayName": "error_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "usage_adoption",
+      "displayName": "Usage & Adoption",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Usage & Adoption\n",
+                "Track who is using dashboards, how often, and activity trends.",
+                "\n\n_Based on audit activity: only dashboards with events in the **Lookback (days)** window appear here._"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "top_consumers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_consumers",
+                  "fields": [
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "sum(view_count)",
+                      "expression": "SUM(`view_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Dashboard Consumers"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "user_email",
+                  "displayName": "user_email",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(view_count)",
+                  "displayName": "view_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "user_email",
+                  "displayName": "user_email",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "activity_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "activity_trend",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "sum(event_count)",
+                      "expression": "SUM(`event_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Dashboard Activity Trend"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_date",
+                  "displayName": "event_date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(event_count)",
+                  "displayName": "event_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "action_breakdown",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "action_breakdown",
+                  "fields": [
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "sum(action_count)",
+                      "expression": "SUM(`action_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Actions by Type"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(action_count)",
+                  "displayName": "action_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "action_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "action_breakdown",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "sum(action_count)",
+                      "expression": "SUM(`action_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Actions Over Time"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_date",
+                  "displayName": "event_date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(action_count)",
+                  "displayName": "action_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 10,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "access_permissions",
+      "displayName": "Access & Permissions",
+      "layout": [
+        {
+          "widget": {
+            "name": "sharing_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "sharing_activity",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "dashboard_id",
+                      "expression": "`dashboard_id`"
+                    },
+                    {
+                      "name": "workspace_id",
+                      "expression": "`workspace_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Permission & Ownership Change Log"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_date"
+                  },
+                  {
+                    "fieldName": "user_email"
+                  },
+                  {
+                    "fieldName": "action_name"
+                  },
+                  {
+                    "fieldName": "dashboard_id"
+                  },
+                  {
+                    "fieldName": "workspace_id"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Access & Permissions\n",
+                "Monitor permission changes, ownership transfers, and sharing activity.",
+                "\n\n_Based on audit activity: only dashboards with events in the **Lookback (days)** window appear here._"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "sharing_by_user",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "sharing_activity",
+                  "fields": [
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "sum(event_count)",
+                      "expression": "SUM(`event_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Permission Changes by User"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "user_email",
+                  "displayName": "user_email",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(event_count)",
+                  "displayName": "event_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "user_email",
+                  "displayName": "user_email",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "sharing_by_action",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "sharing_activity",
+                  "fields": [
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "sum(event_count)",
+                      "expression": "SUM(`event_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Changes by Type"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(event_count)",
+                  "displayName": "event_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "errors_reliability",
+      "displayName": "Errors & Reliability",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Errors & Reliability\n",
+                "Track failed operations, error patterns, and users impacted by errors.",
+                "\n\n_Based on audit activity: only dashboards with events in the **Lookback (days)** window appear here._"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "error_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "failed_operations",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "sum(error_count)",
+                      "expression": "SUM(`error_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Operations Trend"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "event_date",
+                  "displayName": "event_date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(error_count)",
+                  "displayName": "error_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "top_error_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "failed_operations",
+                  "fields": [
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "sum(error_count)",
+                      "expression": "SUM(`error_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top Users with Errors"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "user_email",
+                  "displayName": "user_email",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(error_count)",
+                  "displayName": "error_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "user_email",
+                  "displayName": "user_email",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "errors_by_action",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "failed_operations",
+                  "fields": [
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "sum(error_count)",
+                      "expression": "SUM(`error_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Errors by Action Type"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(error_count)",
+                  "displayName": "error_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "action_name",
+                  "displayName": "action_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "errors_by_status",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "failed_operations",
+                  "fields": [
+                    {
+                      "name": "status_code",
+                      "expression": "`status_code`"
+                    },
+                    {
+                      "name": "sum(error_count)",
+                      "expression": "SUM(`error_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Errors by Status Code"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "status_code",
+                  "displayName": "status_code",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(error_count)",
+                  "displayName": "error_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "status_code",
+                  "displayName": "status_code",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 10,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "error_details",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "error_details",
+                  "fields": [
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    },
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "status_code",
+                      "expression": "`status_code`"
+                    },
+                    {
+                      "name": "error_message",
+                      "expression": "`error_message`"
+                    },
+                    {
+                      "name": "dashboard_id",
+                      "expression": "`dashboard_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Recent Error Details"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_time"
+                  },
+                  {
+                    "fieldName": "user_email"
+                  },
+                  {
+                    "fieldName": "action_name"
+                  },
+                  {
+                    "fieldName": "status_code"
+                  },
+                  {
+                    "fieldName": "error_message"
+                  },
+                  {
+                    "fieldName": "dashboard_id"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "audit_trail",
+      "displayName": "Audit Trail",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Audit Trail\n",
+                "Detailed event logs, dashboard creators, and deletion tracking.",
+                "\n\n_Based on audit activity: only dashboards with events in the **Lookback (days)** window appear here._"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "recent_actions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "recent_actions",
+                  "fields": [
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    },
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "action_name",
+                      "expression": "`action_name`"
+                    },
+                    {
+                      "name": "dashboard_id",
+                      "expression": "`dashboard_id`"
+                    },
+                    {
+                      "name": "workspace_id",
+                      "expression": "`workspace_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Recent Dashboard Actions"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_time"
+                  },
+                  {
+                    "fieldName": "user_email"
+                  },
+                  {
+                    "fieldName": "action_name"
+                  },
+                  {
+                    "fieldName": "dashboard_id"
+                  },
+                  {
+                    "fieldName": "workspace_id"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "creators",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dashboard_creators",
+                  "fields": [
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "dashboards_created",
+                      "expression": "`dashboards_created`"
+                    },
+                    {
+                      "name": "last_created",
+                      "expression": "`last_created`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Dashboard Creators"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "user_email"
+                  },
+                  {
+                    "fieldName": "dashboards_created"
+                  },
+                  {
+                    "fieldName": "last_created"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "deletions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "deletion_log",
+                  "fields": [
+                    {
+                      "name": "event_date",
+                      "expression": "`event_date`"
+                    },
+                    {
+                      "name": "user_email",
+                      "expression": "`user_email`"
+                    },
+                    {
+                      "name": "dashboard_id",
+                      "expression": "`dashboard_id`"
+                    },
+                    {
+                      "name": "workspace_id",
+                      "expression": "`workspace_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Dashboard Deletions"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "event_date"
+                  },
+                  {
+                    "fieldName": "user_email"
+                  },
+                  {
+                    "fieldName": "dashboard_id"
+                  },
+                  {
+                    "fieldName": "workspace_id"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "inactive_dashboards",
+      "displayName": "Inactive Dashboards",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Inactive Dashboards\n",
+                "Dashboards with audit activity in the **History (days)** window, not deleted, and with **no activity** in the **Lookback (days)** window. ",
+                "Owner = creator (`createDashboard`), else the last editor (`updateDashboard` / `publishDashboard`); `unknown` when neither happened inside the history window. ",
+                "Dashboards with no events at all in the history window are not visible (system tables have no dashboard inventory)."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "inactive_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "inactive_dashboards",
+                  "fields": [
+                    {
+                      "name": "sum(dashboard_count)",
+                      "expression": "SUM(`dashboard_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Inactive Dashboards"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(dashboard_count)",
+                  "rowNumber": 0
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 3,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "inactive_by_owner",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "inactive_by_owner",
+                  "fields": [
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "sum(inactive_dashboards)",
+                      "expression": "SUM(`inactive_dashboards`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top 20 Owners of Inactive Dashboards"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "owner",
+                  "displayName": "owner",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(inactive_dashboards)",
+                  "displayName": "inactive dashboards",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 9,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "inactive_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "inactive_dashboards",
+                  "fields": [
+                    {
+                      "name": "dashboard_id",
+                      "expression": "`dashboard_id`"
+                    },
+                    {
+                      "name": "workspace_id",
+                      "expression": "`workspace_id`"
+                    },
+                    {
+                      "name": "owner",
+                      "expression": "`owner`"
+                    },
+                    {
+                      "name": "owner_source",
+                      "expression": "`owner_source`"
+                    },
+                    {
+                      "name": "last_activity_date",
+                      "expression": "`last_activity_date`"
+                    },
+                    {
+                      "name": "days_inactive",
+                      "expression": "`days_inactive`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Inactive Dashboard Details"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dashboard_id"
+                  },
+                  {
+                    "fieldName": "workspace_id"
+                  },
+                  {
+                    "fieldName": "owner"
+                  },
+                  {
+                    "fieldName": "owner_source"
+                  },
+                  {
+                    "fieldName": "last_activity_date"
+                  },
+                  {
+                    "fieldName": "days_inactive"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_lookback_days",
+            "queries": [
+              {
+                "name": "parameter_dashboards_by_workspace_lookback_days",
+                "query": {
+                  "datasetName": "dashboards_by_workspace",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_activity_trend_lookback_days",
+                "query": {
+                  "datasetName": "activity_trend",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboard_inventory_lookback_days",
+                "query": {
+                  "datasetName": "dashboard_inventory",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_top_consumers_lookback_days",
+                "query": {
+                  "datasetName": "top_consumers",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboard_creators_lookback_days",
+                "query": {
+                  "datasetName": "dashboard_creators",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_recent_actions_lookback_days",
+                "query": {
+                  "datasetName": "recent_actions",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_deletion_log_lookback_days",
+                "query": {
+                  "datasetName": "deletion_log",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_action_breakdown_lookback_days",
+                "query": {
+                  "datasetName": "action_breakdown",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_sharing_activity_lookback_days",
+                "query": {
+                  "datasetName": "sharing_activity",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_error_details_lookback_days",
+                "query": {
+                  "datasetName": "error_details",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_failed_operations_lookback_days",
+                "query": {
+                  "datasetName": "failed_operations",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_inactive_dashboards_lookback_days",
+                "query": {
+                  "datasetName": "inactive_dashboards",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_inactive_by_owner_lookback_days",
+                "query": {
+                  "datasetName": "inactive_by_owner",
+                  "parameters": [
+                    {
+                      "name": "lookback_days",
+                      "keyword": "lookback_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-text-entry",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_dashboards_by_workspace_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_activity_trend_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_dashboard_inventory_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_top_consumers_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_dashboard_creators_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_recent_actions_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_deletion_log_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_action_breakdown_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_sharing_activity_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_error_details_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_failed_operations_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_inactive_dashboards_lookback_days"
+                  },
+                  {
+                    "parameterName": "lookback_days",
+                    "queryName": "parameter_inactive_by_owner_lookback_days"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lookback (days)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_history_days",
+            "queries": [
+              {
+                "name": "parameter_inactive_dashboards_history_days",
+                "query": {
+                  "datasetName": "inactive_dashboards",
+                  "parameters": [
+                    {
+                      "name": "history_days",
+                      "keyword": "history_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_inactive_by_owner_history_days",
+                "query": {
+                  "datasetName": "inactive_by_owner",
+                  "parameters": [
+                    {
+                      "name": "history_days",
+                      "keyword": "history_days"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-text-entry",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "history_days",
+                    "queryName": "parameter_inactive_dashboards_history_days"
+                  },
+                  {
+                    "parameterName": "history_days",
+                    "queryName": "parameter_inactive_by_owner_history_days"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "History (days) - inactive dashboards",
+                "description": "Audit history scanned to find dashboards (max 365). Larger = slower."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
