@@ -22,7 +22,7 @@
 **Fuera del alcance del MVP**, a cargo del cliente o para una fase 2
 - Configurar el CI/CD pipeline en la herramienta de Grupo Bimbo (Azure DevOps o GitHub).
 - Crear los grupos en Entra ID y el SCIM provisioning.
-- Construir los charts adicionales de la sección 8 (están definidos, pero no implementados).
+- Construir los charts adicionales que hagan sentido para Grupo Bimbo, en la sección 8 hay una propuesta (solo tomarlos como referencia).
 - Operar el dashboard después del go-live.
 
 ---
