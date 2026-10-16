@@ -52,7 +52,7 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 |---|---|---|---|
 | D-09 | Nombre del warehouse en dev | `wh-gb-governance-dev` → `lookup.warehouse` | Workspace Admin |
 | D-10 | Nombre del warehouse en prod | `wh-gb-governance-prod` | Workspace Admin |
-| D-11 | Tipo / tamaño | Serverless, 2X-Small, auto-stop de 10 min, max clusters 1–2 | Platform Engineer |
+| D-11 | Tipo / tamaño | TBD | Platform Engineer |
 | D-12 | Tags de costo | `project=dashboard-governance`, `owner=<area>` | Client Owner |
 | D-13 | Permiso `CAN_USE` en el warehouse | SP de deployment + Developers (+ Consumers solo si `embed_credentials: false`) | Workspace Admin |
 
