@@ -23,7 +23,7 @@
 **Fuera del alcance del MVP**, a cargo del cliente o para una fase 2
 - Configurar el CI/CD pipeline en la herramienta de Grupo Bimbo (Azure DevOps o GitHub).
 - Crear los grupos en Entra ID y el SCIM provisioning.
-- Construir los charts adicionales de la sección 8 (están definidos, pero no implementados).
+- Construir los charts adicionales que hagan sentido para Grupo Bimbo, en la sección 8 hay una propuesta (solo tomarlos como referencia).
 - Operar el dashboard después del go-live.
 
 ---
@@ -51,7 +51,7 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 
 | ID | Definición | Valor recomendado | Responsable |
 |---|---|---|---|
-| D-09 | Nombre del warehouse en dev | `wh-gb-governance-dev` → `lookup.warehouse` | Workspace Admin |
+| D-09 | Nombre del warehouse en dev | `wh-gb-governance-dev`  | Workspace Admin |
 | D-10 | Nombre del warehouse en prod | `wh-gb-governance-prod` | Workspace Admin |
 | D-11 | Tipo / tamaño | Serverless, 2X-Small, auto-stop de 10 min, max clusters 1–2 | Platform Engineer |
 | D-12 | Tags de costo | `project=dashboard-governance`, `owner=<area>` | Client Owner |
