@@ -45,7 +45,7 @@ FROM system.access.audit
 WHERE service_name = 'dashboards'
   AND event_date >= date_sub(current_date(), 30);
 
--- T-01b · Optional: access needed by the proposed charts (section 8)
+-- T-01b · Optional: access needed by the additional charts (section 8)
 SELECT COUNT(*) AS workspaces FROM system.access.workspaces_latest;
 SELECT COUNT(*) AS dashboard_queries_7d FROM system.query.history
  WHERE query_source.dashboard_id IS NOT NULL AND start_time >= date_sub(current_date(), 7);

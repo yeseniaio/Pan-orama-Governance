@@ -1,6 +1,13 @@
 # 🍞 Pan-orama Governance — Dashboard Governance Bundle
 
-This bundle deploys the **Dashboard Governance - POC** AI/BI (Lakeview) dashboard. The dashboard tracks how AI/BI dashboards are created, used, shared, and deleted across workspaces. All data comes from the `system.access.audit` system table (`service_name = 'dashboards'`).
+This bundle deploys the **Dashboard Governance** AI/BI (Lakeview) dashboard. The dashboard tracks how AI/BI dashboards are created, used, shared, and deleted across workspaces.
+
+| | |
+|---|---|
+| **Data source** | Unity Catalog system tables (`system.access.audit`, `system.query.history`, `system.billing.*`, `system.access.workspaces_latest`) |
+| **Delivered by** | Yesenia Alejandro — Delivery Solutions Architect |
+
+The dashboard pages read `system.access.audit`. The other tables are used by the smoke tests and the additional charts described in `docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md` (section 8).
 
 ## Contents
 
@@ -8,7 +15,7 @@ This bundle deploys the **Dashboard Governance - POC** AI/BI (Lakeview) dashboar
 Pan-orama-Governance/
 ├── databricks.yml                         # Bundle config: variables, dashboard resource, dev/prod targets
 ├── README.md
-├── docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md     # Definitions, AD groups, deployment phases, RACI, test plan, proposed charts
+├── docs/PLAN_DEPLOYMENT_GRUPO_BIMBO.md     # Definitions, AD groups, deployment phases, RACI, test plan, additional charts
 ├── tests/smoke_tests.sql                  # SQL checks to run in the client environment
 └── src/
     └── dashboard_governance.lvdash.json   # Dashboard definition (datasets, pages, widgets)

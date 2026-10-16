@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **Entregable** | Dashboard Governance (AI/BI dashboard) empaquetado como Declarative Automation Bundle (DAB) |
-| **MVP entregado por** | Yesenia Alejandro — Databricks Solutions Architect |
+| **MVP entregado por** | Yesenia Alejandro — Delivery Solutions Architect |
 | **Deployment y operación** | Client Owner — Grupo Bimbo |
 | **Ambiente MVP** | `fevm-serverless-stable-ga965x` (target `fevm`) — ambiente de demostración de Databricks |
 | **Ambientes del cliente** | targets `bimbo_dev` y `bimbo_prod` en `databricks.yml` |
-| **Fuente de datos** | System tables de Unity Catalog (`system.access.audit` y, para los nuevos charts, `system.query.history`, `system.billing.*`, `system.access.workspaces_latest`) |
+| **Fuente de datos** | System tables de Unity Catalog (`system.access.audit`, `system.query.history`, `system.billing.*`, `system.access.workspaces_latest`) |
 
 ---
 
@@ -60,7 +60,7 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 
 | ID | Definición | Detalle | Responsable |
 |---|---|---|---|
-| D-14 | System schemas habilitados | `access` (requerido); `query` y `billing` (para los charts nuevos) | Account Admin |
+| D-14 | System schemas habilitados | `access` (requerido); `query` y `billing` (para los charts adicionales) | Account Admin |
 | D-15 | Grants sobre system tables | Ver la sección 5.3 | Metastore Admin |
 | D-16 | Validar los `action_name` en el account del cliente | Ejecutar el smoke test T-04 | Platform Engineer |
 | D-17 | Retención requerida | El audit log conserva unos 365 días; el dashboard usa hasta 90 | Client Owner |
@@ -96,7 +96,7 @@ Hay que llenar esta tabla antes de empezar la Fase 1. Cada valor se traslada a `
 
 | Rol | Persona / área | Organización |
 |---|---|---|
-| **MVP Delivery Lead** | Yesenia Alejandro (Databricks SA) | Databricks |
+| **MVP Delivery Lead** | Yesenia Alejandro (Delivery Solutions Architect) | Databricks |
 | **Client Owner** | Líder de Data Platform / Data Governance — *nombre: ____* | Grupo Bimbo |
 | **Databricks Account Admin** | *nombre: ____* | Grupo Bimbo |
 | **Metastore Admin** | *nombre: ____* | Grupo Bimbo |
@@ -148,8 +148,8 @@ Los nombres de grupo son variables del bundle (`admins_group`, `developers_group
    ```bash
    databricks system-schemas list   <metastore-id>
    databricks system-schemas enable <metastore-id> access
-   databricks system-schemas enable <metastore-id> query     # charts nuevos
-   databricks system-schemas enable <metastore-id> billing   # charts nuevos
+   databricks system-schemas enable <metastore-id> query     # charts adicionales
+   databricks system-schemas enable <metastore-id> billing   # charts adicionales
    ```
 2. **Identity Admin:** crear los grupos de la sección 4 en Entra ID y el service principal; sincronizarlos al account (SCIM).
 3. **Account Admin:** asignar los grupos y el SP al workspace de deployment (workspace assignment).
@@ -211,7 +211,7 @@ Después, ejecutar los smoke tests T-01 a T-10 de la sección 6.
 GRANT USE CATALOG ON CATALOG system                     TO `<principal>`;
 GRANT USE SCHEMA  ON SCHEMA  system.access              TO `<principal>`;
 GRANT SELECT      ON TABLE   system.access.audit        TO `<principal>`;
--- Para los charts nuevos (sección 8):
+-- Para los charts adicionales (sección 8):
 GRANT SELECT      ON TABLE   system.access.workspaces_latest TO `<principal>`;
 GRANT USE SCHEMA  ON SCHEMA  system.query               TO `<principal>`;
 GRANT SELECT      ON TABLE   system.query.history       TO `<principal>`;
@@ -247,7 +247,7 @@ Los queries de soporte están en `tests/smoke_tests.sql`.
 
 **R** = Responsible (ejecuta) · **A** = Accountable (aprueba y responde) · **C** = Consulted · **I** = Informed
 
-| # | Actividad | Yesenia (Databricks SA) | Client Owner | Account Admin | Metastore Admin | Workspace Admin | Identity Admin | Platform / DevOps | Security | Consumers |
+| # | Actividad | Yesenia (DSA) | Client Owner | Account Admin | Metastore Admin | Workspace Admin | Identity Admin | Platform / DevOps | Security | Consumers |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Construir el MVP (dashboard + bundle) en `fevm` | **A/R** | C | – | – | – | – | I | – | I |
 | 2 | Demo y aprobación del MVP | R | **A** | – | – | – | – | I | C | C |
@@ -266,7 +266,7 @@ Los queries de soporte están en `tests/smoke_tests.sql`.
 | 15 | Aprobar el go-live | I | **A/R** | I | I | I | – | C | C | I |
 | 16 | Deploy a `bimbo_prod` vía CI/CD | I | A | – | – | I | – | **R** | – | I |
 | 17 | Publicar y configurar schedules y subscriptions | C | **A** | – | – | – | – | R | – | I |
-| 18 | Priorizar y construir los charts nuevos (sección 8) | C (diseño) | **A** | – | – | – | – | R | C | C |
+| 18 | Priorizar y construir los charts adicionales (sección 8) | C (diseño) | **A** | – | – | – | – | R | C | C |
 | 19 | Operación, costos y revisión de accesos | – | **A** | C | C | R | R | R | C | I |
 | 20 | Soporte de Databricks (escalaciones de producto) | **R** | A | – | – | – | – | C | – | – |
 
